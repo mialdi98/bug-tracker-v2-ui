@@ -1,0 +1,28 @@
+
+/* nav styles */
+nav.top-bar {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+  background-color: #f8f8f8;
+  border: #e7e7e7 solid 2px;
+  margin-bottom: 15px;
+  .site-icon {
+    margin-right: 15px;
+  }
+  .active-button {
+    background-color: rgb(192, 192, 192);
+    border: 1px solid rgb(160, 159, 159)
+  }
+  .btn fa-icon {
+    margin-right: 5px;
+  }
+}
+
+.centered-modal.in {
+    display: flex !important;
+}
+.centered-modal .modal-dialog {
+    margin: auto;
+}
