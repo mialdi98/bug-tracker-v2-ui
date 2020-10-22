@@ -1,0 +1,133 @@
+<div class="container">
+  <table class="table table-bordered table-hover">
+    <thead>
+      <tr class="row">
+        <th class="col-md-3 text-center"><fa-icon [icon]="faThumbtack"></fa-icon> Bug title</th>
+        <th class="col-md-2 text-center">Project title</th>
+        <th class="col-md-1 text-center">Git</th>
+        <th class="col-md-2 text-center">Status</th>
+        <th class="col-md-2 text-center">Assignet to</th>
+        <th class="col-md-2 text-center">Options</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="row">
+        <td class="col-md-3 text-center">{{bug.title}}</td>
+        <td class="col-md-2 text-center"><a routerLink="/project/{{project.id}}">{{project.title}}</a></td>
+        <td class="col-md-1 text-center"><a href="{{bug.link}}">GIT</a></td>
+        <td class="col-md-2 text-center"><button class="btn btn-info">{{bug.status}}</button></td>
+        <td class="col-md-2 text-center">{{bug.assignetTo.username}}</td>
+        <td class="col-md-1 text-center">
+          <button class="btn btn-warning" (click)="openModalUpdateBug(modalUpdateBug)">Update</button>
+        </td>
+        <td class="col-md-1 text-center">
+          <button class="btn btn-danger" (click)="openModalDeleteBug(modalDeleteBug)">Delete</button>
+        </td>
+      </tr>
+      <tr class="row">
+        <th class="col-md-12 text-center">Description</th>
+      </tr>
+      <tr class="row">
+        <td class="col-md-12 bug-description">{{bug.description}}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Bootstrap Modals -->
+<!-- Modal - Update details -->
+<ng-template #modalUpdateBug let-modal>
+  <form role="form" (ngSubmit)="updateBugF()" [formGroup]="updateBug">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Update</h4>
+        <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="bug-title">Bug title</label>
+          <input type="text" id="bug-title" placeholder="Bug titile" class="form-control"
+            formControlName="title"
+          />
+        </div>
+        <div class="form-group">
+          <label for="update-github-link">GIT link</label>
+          <input type="text" id="update-github-link" placeholder="Git link" class="form-control"
+            formControlName="link"
+          />
+        </div>
+        <div class="form-group">
+          <label for="update-project-title">Project name</label>
+          <input type="text" readonly="readonly" id="update-project-title" class="form-control"
+            value="{{project.title}}"
+          />
+        </div>
+        <div class="form-group">
+          <label for="update-assignet-to">Assignet to</label>
+          <div class="selectContainer">
+            <div class="input-group">
+            <select id="update-assignet-to" formControlName="assignetTo" class="form-control">
+              <option 
+                *ngFor="let assignetTo of assignetToArray" 
+                [disabled]="assignetTo.username == assignetToDef.username"
+                [hidden]="assignetTo.username == assignetToDef.username"
+              >
+                {{assignetTo.username}}
+              </option>
+            </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="update-status">Status</label>
+          <div class="selectContainer">
+            <div class="input-group">
+            <select formControlName="status" class="form-control">
+              <option *ngFor="let status of statuses" [disabled]="status==statusDef" [hidden]="status==statusDef">{{status}}</option>
+            </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="update-description">Description</label>    
+          <textarea style="resize:vertical;" id="update-description" class="form-control" rows="3" placeholder="Description of bug"
+            formControlName="description"
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" (click)="modal.dismiss('Cross click')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </form>
+</ng-template>
+<!-- // Modal -->
+<!-- Modal - Delete project -->
+<ng-template #modalDeleteBug let-modal>
+  <form role="form" (ngSubmit)="deleteBugF()" [formGroup]="deleteBug">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Delete</h4>
+        <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="bug-title">Bug title</label>
+          <input id="bug-title" type="text" readonly="readonly" placeholder="Bug title" class="form-control"
+            formControlName="title"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" (click)="modal.dismiss('Cross click')">Cancel</button>
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </form>
+</ng-template>
+<!-- // Modal -->
