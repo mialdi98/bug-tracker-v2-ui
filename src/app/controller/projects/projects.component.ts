@@ -107,8 +107,6 @@ export class ProjectsComponent implements OnInit {
           this.projects.push(project);
         }
       });
-      console.log("CreateProject");
-      console.log(this.projects);
     }
     this.modalReference.close('Save Changes');
   }
@@ -139,8 +137,6 @@ export class ProjectsComponent implements OnInit {
     // Clean value.
     this.DeleteProject.patchValue({id: ""});
     this.DeleteProject.patchValue({projectTitle: ""});
-    console.log("DeletedProject");
-    console.log(this.projects);
     this.modalReference.close('Save Changes');
   }
 
@@ -193,8 +189,6 @@ export class ProjectsComponent implements OnInit {
         this.UpdateProject.patchValue({newMember: ""});
       }
     });
-    console.log("UpdatedProject");
-    console.log(this.projects[index]);
     this.modalReference.close('Save Changes');
   }
 
