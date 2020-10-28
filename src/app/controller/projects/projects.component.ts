@@ -3,7 +3,7 @@ import { faProjectDiagram } from '@fortawesome/free-solid-svg-icons';
 import { NgbModal, ModalDismissReasons, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { User } from '../../entity/user/user';
 import { Project } from '../../entity/project/project';
@@ -27,32 +27,6 @@ export class ProjectsComponent implements OnInit {
   projects: Array<Project>;
   user: User;
 
-  ngOnInit(): void {
-    this.user = JSON.parse(localStorage.getItem("user"));
-
-    const project1 = new Project(0, "First one", this.user, [this.user]);
-    const project2 = new Project(1, "First two", this.user, [this.user]);
-    this.projects = new Array;
-    this.projects.push(project1);
-    this.projects.push(project2);
-
-    this.titleService.setTitle("BT - projects list");
-    this.UpdateProject = this.UpdateProjectForm.group({
-      id: null,
-      projectTitle: "",
-      assignetTo: "",
-      newMember: "",
-    });
-    this.DeleteProject = this.DeleteProjectForm.group({
-      id: null,
-      projectTitle: "",
-    });
-    this.CreateProject = this.CreateProjectForm.group({
-      id: null,
-      projectTitle: "",
-    });
-  }
-
   constructor(
     public httpClient: HttpClient,
     private titleService:Title,
@@ -62,18 +36,80 @@ export class ProjectsComponent implements OnInit {
     private CreateProjectForm: FormBuilder
 ) {}
 
+  ngOnInit(): void {
+    this.user = JSON.parse(localStorage.getItem("user"));
+    this.getProjectsRequest();
+    this.titleService.setTitle("BT - projects list");
+    this.UpdateProject = this.UpdateProjectForm.group({
+      id: null,
+      projectTitle: "",
+      assignetTo: "",
+      members: [],
+      newMember: "",
+    });
+    this.DeleteProject = this.DeleteProjectForm.group({
+      id: null,
+      projectTitle: "",
+    });
+    this.CreateProject = this.CreateProjectForm.group({
+      projectTitle: "",
+    });
+  }
+
+  getProjectsRequest() {
+    //  Get projects.
+    const url = 'http://bug-tracker.local/project_get_all';
+    const params = new HttpParams().set('uid', this.user.id.toString());
+    const options = {params: params};
+    this.httpClient.get(url,options)
+    .subscribe((response)=>{
+      if (response !== null) {
+        this.projects = new Array;
+        // Set projects.
+        for (var key in response) {
+          let project = new Project(
+            response[key]['id'],
+            response[key]['title'],
+            response[key]['assignet_to'],
+            response[key]['members']
+          );
+          this.projects.push(project);
+        }
+      }
+    });
+  }
+
   createProject() {
-    // @TODO send request to API here.
-    // Get index of object with needed id.
-    const id = parseInt((Math.random() * 0x10000).toFixed());
-    // create project.
     if (this.CreateProject.value.projectTitle != "") {
-      const newProject = new Project(id,this.CreateProject.value.projectTitle, this.user);
-      this.projects.push(newProject);
-      this.CreateProject.value.projectTitle = "";
+      // Set values to send.
+      const url = 'http://bug-tracker.local/project_add';
+      const params = new HttpParams()
+      .set('title', this.CreateProject.value.projectTitle.toString())
+      .set('assignet_to', this.user.id.toString())
+      .set('members[]', this.user.id.toString())
+      .set('uid', this.user.id.toString());
+      const options = {params: params};
+      // Clear value.
+      this.CreateProject.patchValue({projectTitle: ""});
+      // Request.
+      this.httpClient.get(url,options).subscribe((response)=>{
+        if (response !== null) {
+          if (this.isUndefined(this.projects)) {
+            this.projects = new Array;
+          }
+          // Set project.
+          let project = new Project(
+            response['id'],
+            response['title'],
+            response['assignet_to'],
+            response['members']
+          );
+          this.projects.push(project);
+        }
+      });
+      console.log("CreateProject");
+      console.log(this.projects);
     }
-    console.log("CreateProject");
-    console.log(this.projects);
     this.modalReference.close('Save Changes');
   }
 
@@ -83,15 +119,28 @@ export class ProjectsComponent implements OnInit {
   }
 
   deleteProject() {
-    // Get index of object with needed id.
-    const index = this.projects.map(e => e.id).indexOf(this.DeleteProject.value.id);
-    // Delete project.
-    if (!this.isUndefined(index)) {
-      this.projects.splice(index, 1);
-    }
+    // Set values to send.
+    const projectId = this.DeleteProject.value.id;
+    const url = 'http://bug-tracker.local/project_delete';
+    const params = new HttpParams()
+    .set('id', projectId.toString())
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    // Request.
+    this.httpClient.get(url,options).subscribe((response)=>{
+      if (response !== null && response['status'] == 'Success') {
+        // Delete project.
+        const index = this.projects.map(e => e.id).indexOf(projectId);
+        if (index != -1) {
+          this.projects.splice(index, 1);
+        }
+      }
+    });
+    // Clean value.
+    this.DeleteProject.patchValue({id: ""});
+    this.DeleteProject.patchValue({projectTitle: ""});
     console.log("DeletedProject");
     console.log(this.projects);
-    // @TODO send request to API here.
     this.modalReference.close('Save Changes');
   }
 
@@ -108,19 +157,44 @@ export class ProjectsComponent implements OnInit {
   updateProject() {
     // Get index of object with needed id.
     const index = this.projects.map(e => e.id).indexOf(this.UpdateProject.value.id);
-    // Update project values.
-    if (this.UpdateProject.value.projectTitle != "") {
-      this.projects[index].title = this.UpdateProject.value.projectTitle;
-    }
+    // Add new member to members.
     if (this.UpdateProject.value.newMember != "") {
-      this.projects[index].members.push(this.UpdateProject.value.newMember);
-      this.UpdateProject.patchValue({newMember: ""});
+      this.UpdateProject.value.members.push({username: this.UpdateProject.value.newMember});
     }
+    // Members array shaping.
+    const members = [];
+    for (const member of this.UpdateProject.value.members) {
+      members.push(member.username);
+    }
+    // Set values to send.
+    const url = 'http://bug-tracker.local/project_edit';
+    const params = new HttpParams()
+    .set('id', this.UpdateProject.value.id.toString())
+    .set('title', this.UpdateProject.value.projectTitle.toString())
+    .set('assignet_to', this.UpdateProject.value.assignetTo.toString())
+    .set('members', JSON.stringify(members))
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    // Request.
+    this.httpClient.get(url,options).subscribe((response)=>{
+      if (response !== null && response['status'] == 'Success') {
+        // Update project.
+        this.projects[index].id = this.UpdateProject.value.id;
+        this.projects[index].title = this.UpdateProject.value.projectTitle;
+        // Get index of object with needed id.
+        const indexMember = this.projects[index].members.map(e => e.username).indexOf(this.UpdateProject.value.assignetTo);
+        this.projects[index].assignetTo = this.UpdateProject.value.members[indexMember];
+        this.projects[index].members = this.UpdateProject.value.members;
+        // Clear values.
+        this.UpdateProject.patchValue({id: ""});
+        this.UpdateProject.patchValue({projectTitle: ""});
+        this.UpdateProject.patchValue({assignetTo: ""});
+        this.UpdateProject.patchValue({members: []});
+        this.UpdateProject.patchValue({newMember: ""});
+      }
+    });
     console.log("UpdatedProject");
-    console.log(this.projects[index].title);
-    console.log(this.projects[index].assignetTo);
-    console.log(this.projects[index].members);
-    // @TODO send request to API here.
+    console.log(this.projects[index]);
     this.modalReference.close('Save Changes');
   }
 
@@ -128,9 +202,10 @@ export class ProjectsComponent implements OnInit {
     // Get index of object with needed id.
     const index = this.projects.map(e => e.id).indexOf(id);
     // Update modal values.
-    this.UpdateProject.patchValue({id: id});
+    this.UpdateProject.patchValue({id: this.projects[index].id});
     this.UpdateProject.patchValue({projectTitle: this.projects[index].title});
     this.UpdateProject.patchValue({assignetTo: this.projects[index].assignetTo.username});
+    this.UpdateProject.patchValue({members: this.projects[index].members});
     // Open modal.
     this.modalReference = this.modalService.open(content);
   }

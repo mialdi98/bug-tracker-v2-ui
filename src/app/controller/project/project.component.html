@@ -4,7 +4,7 @@
     <thead>
       <tr>
         <th class="text-center">
-          <fa-icon [icon]="faTasks"></fa-icon> Project [{{project.title}}] - Bugs list
+          <fa-icon [icon]="faTasks"></fa-icon> Project [{{!isUndefined(project) ? project.title : ""}}] - Bugs list
           <div class="float-right">
             <button class="btn btn-success" (click)="openModalCreateBug(modalCreateBug)">Create New Bug</button>
           </div>
@@ -29,10 +29,17 @@
           <td class="col-md-2 text-center"><button class="btn btn-info">{{bug.status}}</button></td>
           <td class="col-md-2 text-center">{{bug.assignetTo.username}}</td>
           <td class="col-md-1 text-center">
-            <button class="btn btn-warning" (click)="openModalUpdateBug(modalUpdateBug, bug.id)">Update</button>
+            <button 
+              class="btn btn-warning"
+              *ngIf="bug.assignetTo.id == this.user.id"
+              (click)="openModalUpdateBug(modalUpdateBug, bug.id)"
+            >Update</button>
           </td>
           <td class="col-md-1 text-center">
-            <button class="btn btn-danger" (click)="openModalDeleteBug(modalDeleteBug, bug.id)">Delete</button>
+            <button
+            class="btn btn-danger"
+            *ngIf="bug.assignetTo.id == this.user.id"
+            (click)="openModalDeleteBug(modalDeleteBug, bug.id)">Delete</button>
           </td>
         </tr> 
       </ng-container>

@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { NgbModal, ModalDismissReasons, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { User } from './entity/user/user';
 
@@ -32,34 +32,18 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-  }
-
-  private httpOptions = {
-    headers: new HttpHeaders({ 'Content-Type': 'application/JSON' }),
-    withCredentials: true
-  };
-
-  sendGetRequest(){
-      this.httpClient.get('http://bug-tracker.local/auth_is_logged_in').subscribe((res)=>{
-          console.log(res);
-      });
+    this.isLogin = localStorage.getItem('user') != null;
   }
 
   login() {
     // if (this.loginValidate() === true) {
-
-      // const body = {username: this.username, password: this.password};
-      // this.httpClient.post('http://bug-tracker.local/auth_login', body, this.httpOptions).subscribe(
-      // data  => {
-      //   console.log(data);
-      //   console.log("POST Request is successful ", data);
-      // },
-      // error  => {
-      //   console.log("Error", error);
-      // });
-      this.httpClient.get('http://bug-tracker.local/auth_login?username='+this.username+'&password='+this.password)
-      .subscribe((response)=>{
-        console.log(response);
+    const url = 'http://bug-tracker.local/auth_login';
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    const params = new HttpParams()
+    .set('username', this.username.toString())
+    .set('password', this.password.toString());
+    const options = {params: params, headers: headers};
+    this.httpClient.get(url, options).subscribe((response)=>{
         if (response !== null
         && response['id'] != null
         && response['username'] != null
@@ -67,12 +51,11 @@ export class AppComponent implements OnInit {
         ) {
           const user = new User(response['id'], response['username'], response['role']);
           localStorage.setItem('user', JSON.stringify(user));
+          this.isLogin = localStorage.getItem('user') != null;
+          this.username = "";
+          this.password = "";
         }
       });
-
-      this.isLogin = localStorage.getItem('user') != null;
-      this.username = "";
-      this.password = "";
       this.modalReference.close('Save click');
     // }
   }
@@ -81,13 +64,11 @@ export class AppComponent implements OnInit {
     // Username
     if (this.username == ''
     || this.username.match(/.{8,}/i) == null) {
-      // @TODO check of username here
       this.validation = false;
     }
     // Password
     if (this.password == ''
     || this.password.match(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}/i) == null) {
-      // @TODO check of password here
       this.validation = false;
     }
     return this.validation;
@@ -98,7 +79,6 @@ export class AppComponent implements OnInit {
     this.isLogin = false;
     this.router.navigate(['/index']);
   }
-
 
   openModal(content) {
     this.modalReference = this.modalService.open(content);

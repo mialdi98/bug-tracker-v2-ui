@@ -3,6 +3,8 @@ import { faTasks } from '@fortawesome/free-solid-svg-icons';
 import { NgbModal, ModalDismissReasons, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 
 import { User } from '../../entity/user/user';
 import { Project } from '../../entity/project/project';
@@ -28,24 +30,26 @@ export class ProjectComponent implements OnInit {
   statuses = [this.statusDef, "open", "qa", "in progress", "closed"];
   assignetToArray: Array<User>;
   // Data.
+  projectId: number;
   project: Project;
   user: User;
   bugs: Array<Bug>;
 
+  constructor(
+    public httpClient: HttpClient,
+    private activatedRoute: ActivatedRoute,
+    private titleService:Title,
+    private modalService: NgbModal, 
+    private updateBugForm: FormBuilder,
+    private deleteBugForm: FormBuilder,
+    private createBugForm: FormBuilder
+  ) {}
+
   ngOnInit(): void {
     this.user = JSON.parse(localStorage.getItem("user"));
-
-    const user2 = new User(1, "username2", "Developer");
-    this.project = new Project(0, "First one", this.user, [this.user, user2]);
-    const bug1 = new Bug(0, "Bug one", "https://git.com/issue/123", this.user, "open", "description of issue1");
-    const bug2 = new Bug(1, "Bug two", "https://git.com/issue/321", this.user, "open", "description of issue2");
-    this.bugs = new Array;
-    this.bugs.push(bug1);
-    this.bugs.push(bug2);
-
-    this.titleService.setTitle("BT - project ["+this.project.title+"] bugs list");
-    // Value for modal selection.
-    this.assignetToArray = [this.assignetToDef, ...this.project.members];
+    this.getProjectRequest();
+    this.getBugsRequest();
+    // Values for modal selection.
     this.updateBug = this.updateBugForm.group({
       id: null,
       title: "",
@@ -66,38 +70,123 @@ export class ProjectComponent implements OnInit {
       assignetTo: "",
       description: "",
     });
+    if (this.isUndefined(this.project)) {
+      return;
+    }
   }
 
-  constructor(
-    private titleService:Title,
-    private modalService: NgbModal, 
-    private updateBugForm: FormBuilder,
-    private deleteBugForm: FormBuilder,
-    private createBugForm: FormBuilder
-  ) {}
+
+  getProjectRequest() {
+    //  Get project.
+    if (this.isUndefined(this.activatedRoute.snapshot.url[0].path)
+    && this.activatedRoute.snapshot.url[0].path !== 'project'
+    && this.isUndefined(this.activatedRoute.snapshot.params.id)) {
+      return;
+    }
+    this.projectId = this.activatedRoute.snapshot.params.id;
+    const url = 'http://bug-tracker.local/project_get';
+    const params = new HttpParams()
+    .set('id', this.projectId.toString())
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    this.httpClient.get(url,options)
+    .subscribe((response)=>{
+      if (response !== null
+      && response['id'] !== null
+      && response['title'] !== null
+      && response['assignet_to'] !== null
+      && response['members'] !== null) {
+        // Set projects.
+        this.project = new Project(
+          response['id'],
+          response['title'],
+          response['assignet_to'],
+          response['members']
+        );
+        this.titleService.setTitle("BT - project ["+this.project.title+"] bugs list");
+        // Value for modal selection.
+        this.assignetToArray = [this.assignetToDef, ...this.project.members];
+      }
+    });
+  }
+
+  getBugsRequest() {
+    //  Get bugs.
+    const url = 'http://bug-tracker.local/task_get_all';
+    const params = new HttpParams()
+    .set('id', this.projectId.toString())
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    this.httpClient.get(url,options)
+    .subscribe((response)=>{
+      if (response !== null) {
+        this.bugs = new Array;
+        // Get bug.
+        for (var key in response) {
+          let bug = new Bug(
+            response[key]['id'],
+            response[key]['title'],
+            response[key]['link'],
+            response[key]['status'],
+            response[key]['assignet_to'],
+            response[key]['description']
+          );
+          this.bugs.push(bug);
+        }
+      }
+    });
+  }
 
   createBugF() {
-    // @TODO send request to API here.
-    // Get index of object with needed id.
-    const id = parseInt((Math.random() * 0x10000).toFixed());
-    // Create bug.
-    if (this.createBug.value.title != "") {
-      const newBug = new Bug(
-      id,
-      this.createBug.value.title,
-      this.createBug.value.link,
-      this.user,
-      this.createBug.value.status,
-      this.createBug.value.description);
-      this.bugs.push(newBug);
-      // Back to default.
-      this.createBug.patchValue({title: ""});
-      this.createBug.patchValue({link: ""});
-      this.createBug.patchValue({status: "open"});
-      this.createBug.patchValue({description: ""});
+    if (this.createBug.value.title == "") {
+      return;
     }
-    console.log("CreateBug");
-    console.log(this.bugs);
+    // Set values to send.
+    const assignetToIndex = this.project.members.map(e => e.username).indexOf(this.createBug.value.assignetTo);
+    const assignetTo = this.project.members[assignetToIndex];
+    
+    const url = 'http://bug-tracker.local/task_add';
+    const params = new HttpParams()
+    .set('title', this.createBug.value.title.toString())
+    .set('link', this.createBug.value.link.toString())
+    .set('status', this.createBug.value.status.toString())
+    .set('assignet_to', assignetTo.id.toString())
+    .set('description', this.createBug.value.description.toString())
+    .set('project', this.projectId.toString())
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    // Request.
+    this.httpClient.get(url,options)
+    .subscribe((response)=>{
+      if (response !== null
+      && response['id'] !== null
+      && response['title'] !== null
+      && response['link'] !== null
+      && response['status'] !== null
+      && response['assignet_to'] !== null
+      && response['description']) {
+        if (this.isUndefined(this.bugs)) {
+          this.bugs = new Array;
+        }
+        // Set bug.
+        let bug = new Bug(
+          response['id'],
+          response['title'],
+          response['link'],
+          response['status'],
+          response['assignet_to'],
+          response['description']
+        );
+        this.bugs.push(bug);
+        // Back to default.
+        this.createBug.patchValue({id: null});
+        this.createBug.patchValue({title: ""});
+        this.createBug.patchValue({link: ""});
+        this.createBug.patchValue({status: "open"});
+        this.createBug.patchValue({assignetTo: ""});
+        this.createBug.patchValue({description: ""});
+      }
+    });
     this.modalReference.close('Save Changes');
   }
 
@@ -109,15 +198,26 @@ export class ProjectComponent implements OnInit {
   }
 
   deleteBugF() {
-    // Get index of object with needed id.
-    const index = this.bugs.map(e => e.id).indexOf(this.deleteBug.value.id);
-    // Delete bug.
-    if (index != -1) {
-      this.bugs.splice(index, 1);
-    }
-    console.log("DeletedBug");
-    console.log(this.bugs);
-    // @TODO send request to API here.
+    // Set values to send.
+    const url = 'http://bug-tracker.local/task_delete';
+    const params = new HttpParams()
+    .set('id', this.deleteBug.value.id.toString())
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    // Request.
+    this.httpClient.get(url,options).subscribe((response)=>{
+      if (response !== null && response['status'] == 'Success') {
+        // Get index of object with needed id.
+        const index = this.bugs.map(e => e.id).indexOf(this.deleteBug.value.id);
+        // Delete bug.
+        if (index != -1) {
+          this.bugs.splice(index, 1);
+        }
+        // Clean value.
+        this.deleteBug.patchValue({id: ""});
+        this.deleteBug.patchValue({title: ""});
+      }
+    });
     this.modalReference.close('Save Changes');
   }
 
@@ -132,32 +232,55 @@ export class ProjectComponent implements OnInit {
   }
 
   updateBugF() {
-    // Get index of object with needed id.
-    const index = this.bugs.map(e => e.id).indexOf(this.updateBug.value.id);
-    // Update bug values.
-    if (this.updateBug.value.title != "") {
-      this.bugs[index].title = this.updateBug.value.title;
+    // Set values to send.
+    const assignetToIndex = this.project.members.map(e => e.username).indexOf(this.updateBug.value.assignetTo);
+    if (assignetToIndex == -1) {
+      return;
     }
-    if (this.updateBug.value.assignetTo != "") {
-      // Get user index by username from members.
-      const indexMember = this.project.members.map(e => e.username).indexOf(this.updateBug.value.assignetTo);
-      if (indexMember != -1) {
-        // Assign bug on another project member.
-        this.bugs[index].assignetTo = this.project.members[indexMember];
+    const assignetTo = this.project.members[assignetToIndex];
+
+    const url = 'http://bug-tracker.local/task_edit';
+    const params = new HttpParams()
+    .set('id', this.updateBug.value.id.toString())
+    .set('title', this.updateBug.value.title.toString())
+    .set('link', this.updateBug.value.link.toString())
+    .set('status', this.updateBug.value.status.toString())
+    .set('assignet_to', assignetTo.id.toString())
+    .set('description', this.updateBug.value.description.toString())
+    .set('project', this.projectId.toString())
+    .set('uid', this.user.id.toString());
+    const options = {params: params};
+    // Request.
+    this.httpClient.get(url,options)
+    .subscribe((response)=>{
+      if (response !== null
+      && response['id'] !== null
+      && response['title'] !== null
+      && response['link'] !== null
+      && response['status'] !== null
+      && response['assignet_to'] !== null
+      && response['description']) {
+        // Get index of object with needed id.
+        const index = this.bugs.map(e => e.id).indexOf(response['id']);
+        if (index != -1) {
+          this.bugs[index].title = response['title'];
+          this.bugs[index].link = response['link'];
+          this.bugs[index].status = response['status'];
+          if (assignetToIndex != -1) {
+            // Assign bug on project member.
+            this.bugs[index].assignetTo = assignetTo;
+          }
+          this.bugs[index].description = response['description'];
+        }
+        // Back to default.
+        this.updateBug.patchValue({id: null});
+        this.updateBug.patchValue({title: ""});
+        this.updateBug.patchValue({link: ""});
+        this.updateBug.patchValue({status: "open"});
+        this.updateBug.patchValue({assignetTo: ""});
+        this.updateBug.patchValue({description: ""});
       }
-    }
-    if (this.updateBug.value.link != "") {
-      this.bugs[index].link = this.updateBug.value.link;
-    }
-    if (this.updateBug.value.status != "") {
-      this.bugs[index].status = this.updateBug.value.status;
-    }
-    if (this.updateBug.value.description != "") {
-      this.bugs[index].description = this.updateBug.value.description;
-    }
-    console.log("UpdatedBug");
-    console.log(this.bugs[index]);
-    // @TODO send request to API here.
+    });
     this.modalReference.close('Save Changes');
   }
 
@@ -167,9 +290,9 @@ export class ProjectComponent implements OnInit {
     // Update modal values.
     this.updateBug.patchValue({id: id});
     this.updateBug.patchValue({title: this.bugs[index].title});
-    this.updateBug.patchValue({assignetTo: this.bugs[index].assignetTo.username});
     this.updateBug.patchValue({link: this.bugs[index].link});
     this.updateBug.patchValue({status: this.bugs[index].status});
+    this.updateBug.patchValue({assignetTo: this.bugs[index].assignetTo.username});
     this.updateBug.patchValue({description: this.bugs[index].description});
     // Open modal.
     this.modalReference = this.modalService.open(content);

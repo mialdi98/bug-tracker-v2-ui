@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { FormsModule, FormGroup, FormBuilder } from '@angular/forms';
+import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 @Component({
   selector: 'app-registration',
@@ -21,9 +22,11 @@ export class RegistrationComponent implements OnInit {
   roleForm: FormGroup;
   roles = [this.role_def, 'Developer', 'QA', 'Assessor'];
   constructor(
+    public httpClient: HttpClient,
     private titleService:Title,
     private fb: FormBuilder
   ) {}
+
   ngOnInit() {
     this.titleService.setTitle("BT - registration");
     this.roleForm = this.fb.group({
@@ -58,15 +61,26 @@ export class RegistrationComponent implements OnInit {
   }
 
   userCreate() {
-    console.log('all got info:');
+    // Post to api and create user.
     if (this.userValidate() === true) {
-      // Post to api and create user.
-      console.log(this.roleForm.value.roles);
-      console.log(this.username);
-      console.log(this.password);
-      console.log(this.confirm_password);
-      console.log(this.email);
+      const url = 'http://bug-tracker.local/reg';
+      const params = new HttpParams()
+      .set('username', this.username.toString())
+      .set('password', this.password.toString())
+      .set('email', this.email.toString())
+      .set('role', this.roleForm.value.roles.toString())
+      const options = {params: params};
+      // Request.
+      this.httpClient.get(url,options)
+      .subscribe((response)=>{
+        if (response !== null && response['status'] == 'Success') {
+          // Back to default.
+          this.username = "";
+          this.password = "";
+          this.confirm_password = "";
+          this.email = "";
+        }
+      });
     }
   }
-
 }

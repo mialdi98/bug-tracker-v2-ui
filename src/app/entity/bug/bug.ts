@@ -13,14 +13,14 @@ export class Bug {
   id: number,
   title: string,
   link: string,
-  assignetTo: User,
   status: string,
+  assignetTo: User,
   description: string) {
     this.id = id;
     this.title = title;
     this.link = link;
-    this.assignetTo = assignetTo;
     this.status = status;
+    this.assignetTo = assignetTo;
     this.description = description;
   }
 }

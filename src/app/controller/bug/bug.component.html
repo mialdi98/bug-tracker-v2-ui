@@ -10,7 +10,7 @@
         <th class="col-md-2 text-center">Options</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody *ngIf="!isUndefined(bug) && !isUndefined(project)">
       <tr class="row">
         <td class="col-md-3 text-center">{{bug.title}}</td>
         <td class="col-md-2 text-center"><a routerLink="/project/{{project.id}}">{{project.title}}</a></td>
@@ -18,10 +18,16 @@
         <td class="col-md-2 text-center"><button class="btn btn-info">{{bug.status}}</button></td>
         <td class="col-md-2 text-center">{{bug.assignetTo.username}}</td>
         <td class="col-md-1 text-center">
-          <button class="btn btn-warning" (click)="openModalUpdateBug(modalUpdateBug)">Update</button>
+          <button
+          class="btn btn-warning"
+          *ngIf="bug.assignetTo.id == this.user.id"
+          (click)="openModalUpdateBug(modalUpdateBug)">Update</button>
         </td>
         <td class="col-md-1 text-center">
-          <button class="btn btn-danger" (click)="openModalDeleteBug(modalDeleteBug)">Delete</button>
+          <button
+           class="btn btn-danger"
+           *ngIf="bug.assignetTo.id == this.user.id"
+           (click)="openModalDeleteBug(modalDeleteBug)">Delete</button>
         </td>
       </tr>
       <tr class="row">

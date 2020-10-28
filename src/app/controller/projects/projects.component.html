@@ -5,7 +5,11 @@
       <tr>
         <th class="text-center" colspan="6"><fa-icon [icon]="faProjectDiagram"></fa-icon>Projects list
           <div class="float-right">
-            <button class="btn btn-success" (click)="openModalCreateeProject(modalCreateProject)">Add New Project</button>
+            <button
+              class="btn btn-success"
+              *ngIf="this.user.role != 'assessor'"
+              (click)="openModalCreateeProject(modalCreateProject)"
+              >Add New Project</button>
           </div>
         </th>
       </tr>
@@ -24,10 +28,18 @@
           <td class="text-center col-md-8"><a routerLink="/project/{{project.id}}">{{project.title}}</a></td>
           <td class="text-center col-md-2">{{project.assignetTo.username}}</td>
           <td class="text-center col-md-1">
-            <button class="btn btn-warning" (click)="openModalUpdateProject(modalUpdateProject, project.id)">Update</button>
+            <button
+              class="btn btn-warning"
+              *ngIf="project.assignetTo.id == this.user.id"
+              (click)="openModalUpdateProject(modalUpdateProject, project.id)"
+            >Update</button>
           </td>
           <td class="text-center col-md-1" >
-            <button class="btn btn-danger" (click)="openModalDeleteProject(modalDeleteProject, project.id)">Delete</button>
+            <button 
+              class="btn btn-danger"
+              *ngIf="project.assignetTo.id == this.user.id"
+              (click)="openModalDeleteProject(modalDeleteProject, project.id)"
+            >Delete</button>
           </td>
         </tr> 
       </ng-container>
