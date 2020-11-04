@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+
+import { GlobalConstants } from '../../common/global-constants';
 
 @Component({
   selector: 'app-registration',
@@ -61,26 +63,31 @@ export class RegistrationComponent implements OnInit {
   }
 
   userCreate() {
-    // Post to api and create user.
     if (this.userValidate() === true) {
-      const url = 'http://bug-tracker.local/reg';
-      const params = new HttpParams()
-      .set('username', this.username.toString())
-      .set('password', this.password.toString())
-      .set('email', this.email.toString())
-      .set('role', this.roleForm.value.roles.toString())
-      const options = {params: params};
-      // Request.
-      this.httpClient.get(url,options)
-      .subscribe((response)=>{
-        if (response !== null && response['status'] == 'Success') {
+    // Set values to send.
+    const url = GlobalConstants.apiURL+'reg';
+    const body = JSON.stringify({
+      username: this.username,
+      password: this.password,
+      email: this.email,
+      role: this.roleForm.value.roles
+    });
+    // Request.
+    this.httpClient.post(url,body)
+    .subscribe({
+      next: data => {
+        if (data !== null && data['status'] == 'Success') {
           // Back to default.
           this.username = "";
           this.password = "";
           this.confirm_password = "";
           this.email = "";
         }
-      });
+      },
+      error: error => {
+        console.error('Error', error);
+      }
+    });
     }
   }
 }

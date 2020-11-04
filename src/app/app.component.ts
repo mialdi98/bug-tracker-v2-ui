@@ -1,9 +1,10 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { faSignInAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { NgbModal, ModalDismissReasons, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
+import { GlobalConstants } from './common/global-constants';
 import { User } from './entity/user/user';
 
 @Component({
@@ -37,26 +38,34 @@ export class AppComponent implements OnInit {
 
   login() {
     // if (this.loginValidate() === true) {
-    const url = 'http://bug-tracker.local/auth_login';
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    const params = new HttpParams()
-    .set('username', this.username.toString())
-    .set('password', this.password.toString());
-    const options = {params: params, headers: headers};
-    this.httpClient.get(url, options).subscribe((response)=>{
-        if (response !== null
-        && response['id'] != null
-        && response['username'] != null
-        && response['role'] != null
+    // Set values to send.
+    const url = GlobalConstants.apiURL+'auth_login';
+    const body = JSON.stringify({
+      username: this.username,
+      password: this.password
+    });
+    // Request.
+    this.httpClient.post(url,body)
+    .subscribe({
+      next: data => {
+        if (data !== null
+        && data['id'] != null
+        && data['username'] != null
+        && data['role'] != null
         ) {
-          const user = new User(response['id'], response['username'], response['role']);
+          const user = new User(data['id'], data['username'], data['role']);
           localStorage.setItem('user', JSON.stringify(user));
           this.isLogin = localStorage.getItem('user') != null;
+          // Clear values.
           this.username = "";
           this.password = "";
         }
-      });
-      this.modalReference.close('Save click');
+      },
+      error: error => {
+        console.error('Error', error);
+      }
+    });
+    this.modalReference.close('Save click');
     // }
   }
 

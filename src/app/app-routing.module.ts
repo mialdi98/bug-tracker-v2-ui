@@ -7,7 +7,7 @@ import { ProjectsComponent } from './controller/projects/projects.component';
 import { ProjectComponent } from './controller/project/project.component';
 import { BugComponent } from './controller/bug/bug.component';
 
-import { AuthGuard } from './helper/auth.guard';
+import { AuthGuard } from './common/auth.guard';
 
 const routes: Routes = [
   { path: '', redirectTo: '/index', pathMatch: 'full' },

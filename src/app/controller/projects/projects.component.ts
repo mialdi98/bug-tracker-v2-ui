@@ -3,8 +3,9 @@ import { faProjectDiagram } from '@fortawesome/free-solid-svg-icons';
 import { NgbModal, ModalDismissReasons, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 
+import { GlobalConstants } from '../../common/global-constants';
 import { User } from '../../entity/user/user';
 import { Project } from '../../entity/project/project';
 
@@ -57,24 +58,31 @@ export class ProjectsComponent implements OnInit {
   }
 
   getProjectsRequest() {
-    //  Get projects.
-    const url = 'http://bug-tracker.local/project_get_all';
-    const params = new HttpParams().set('uid', this.user.id.toString());
-    const options = {params: params};
-    this.httpClient.get(url,options)
-    .subscribe((response)=>{
-      if (response !== null) {
-        this.projects = new Array;
-        // Set projects.
-        for (var key in response) {
-          let project = new Project(
-            response[key]['id'],
-            response[key]['title'],
-            response[key]['assignet_to'],
-            response[key]['members']
-          );
-          this.projects.push(project);
+    // Set values to send.
+    const url = GlobalConstants.apiURL+'project_get_all';
+    const body = JSON.stringify({
+      uid: this.user.id
+    });
+    // Request.
+    this.httpClient.post(url, body)
+    .subscribe({
+      next: data => {
+        if (data !== null) {
+          this.projects = new Array;
+          // Set projects.
+          for (var key in data) {
+            let project = new Project(
+              data[key]['id'],
+              data[key]['title'],
+              data[key]['assignet_to'],
+              data[key]['members']
+            );
+            this.projects.push(project);
+          }
         }
+      },
+      error: error => {
+        console.error('Error', error);
       }
     });
   }
@@ -82,29 +90,35 @@ export class ProjectsComponent implements OnInit {
   createProject() {
     if (this.CreateProject.value.projectTitle != "") {
       // Set values to send.
-      const url = 'http://bug-tracker.local/project_add';
-      const params = new HttpParams()
-      .set('title', this.CreateProject.value.projectTitle.toString())
-      .set('assignet_to', this.user.id.toString())
-      .set('members[]', this.user.id.toString())
-      .set('uid', this.user.id.toString());
-      const options = {params: params};
-      // Clear value.
-      this.CreateProject.patchValue({projectTitle: ""});
+      const url = GlobalConstants.apiURL+'project_add';
+      const body = JSON.stringify({
+        title: this.CreateProject.value.projectTitle,
+        assignet_to: this.user.id,
+        members: [this.user.id],
+        uid: this.user.id
+      });
       // Request.
-      this.httpClient.get(url,options).subscribe((response)=>{
-        if (response !== null) {
-          if (this.isUndefined(this.projects)) {
-            this.projects = new Array;
+      this.httpClient.post(url,body)
+      .subscribe({
+        next: data => {
+          if (data !== null) {
+            if (this.isUndefined(this.projects)) {
+              this.projects = new Array;
+            }
+            // Set project.
+            let project = new Project(
+              data['id'],
+              data['title'],
+              data['assignet_to'],
+              data['members']
+            );
+            this.projects.push(project);
+            // Clear value.
+            this.CreateProject.patchValue({projectTitle: ""});
           }
-          // Set project.
-          let project = new Project(
-            response['id'],
-            response['title'],
-            response['assignet_to'],
-            response['members']
-          );
-          this.projects.push(project);
+        },
+        error: error => {
+          console.error('Error', error);
         }
       });
     }
@@ -119,24 +133,31 @@ export class ProjectsComponent implements OnInit {
   deleteProject() {
     // Set values to send.
     const projectId = this.DeleteProject.value.id;
-    const url = 'http://bug-tracker.local/project_delete';
-    const params = new HttpParams()
-    .set('id', projectId.toString())
-    .set('uid', this.user.id.toString());
-    const options = {params: params};
+    const url = GlobalConstants.apiURL+'project_delete';
+    const body = JSON.stringify({
+      id: projectId,
+      uid: this.user.id
+    });
     // Request.
-    this.httpClient.get(url,options).subscribe((response)=>{
-      if (response !== null && response['status'] == 'Success') {
-        // Delete project.
-        const index = this.projects.map(e => e.id).indexOf(projectId);
-        if (index != -1) {
-          this.projects.splice(index, 1);
+    this.httpClient.post(url,body)
+    .subscribe({
+      next: data => {
+        if (data !== null && data['status'] == 'Success') {
+          // Delete project.
+          const index = this.projects.map(e => e.id).indexOf(projectId);
+          if (index != -1) {
+            this.projects.splice(index, 1);
+          }
+          // Clean value.
+          this.DeleteProject.patchValue({id: ""});
+          this.DeleteProject.patchValue({projectTitle: ""});
         }
+      },
+      error: error => {
+        console.error('Error', error);
       }
     });
-    // Clean value.
-    this.DeleteProject.patchValue({id: ""});
-    this.DeleteProject.patchValue({projectTitle: ""});
+
     this.modalReference.close('Save Changes');
   }
 
@@ -163,30 +184,36 @@ export class ProjectsComponent implements OnInit {
       members.push(member.username);
     }
     // Set values to send.
-    const url = 'http://bug-tracker.local/project_edit';
-    const params = new HttpParams()
-    .set('id', this.UpdateProject.value.id.toString())
-    .set('title', this.UpdateProject.value.projectTitle.toString())
-    .set('assignet_to', this.UpdateProject.value.assignetTo.toString())
-    .set('members', JSON.stringify(members))
-    .set('uid', this.user.id.toString());
-    const options = {params: params};
+    const url = GlobalConstants.apiURL+'project_edit';
+    const body = JSON.stringify({
+      id: this.UpdateProject.value.id,
+      title: this.UpdateProject.value.projectTitle,
+      assignet_to:  this.UpdateProject.value.assignetTo,
+      members: members,
+      uid: this.user.id
+    });
     // Request.
-    this.httpClient.get(url,options).subscribe((response)=>{
-      if (response !== null && response['status'] == 'Success') {
-        // Update project.
-        this.projects[index].id = this.UpdateProject.value.id;
-        this.projects[index].title = this.UpdateProject.value.projectTitle;
-        // Get index of object with needed id.
-        const indexMember = this.projects[index].members.map(e => e.username).indexOf(this.UpdateProject.value.assignetTo);
-        this.projects[index].assignetTo = this.UpdateProject.value.members[indexMember];
-        this.projects[index].members = this.UpdateProject.value.members;
-        // Clear values.
-        this.UpdateProject.patchValue({id: ""});
-        this.UpdateProject.patchValue({projectTitle: ""});
-        this.UpdateProject.patchValue({assignetTo: ""});
-        this.UpdateProject.patchValue({members: []});
-        this.UpdateProject.patchValue({newMember: ""});
+    this.httpClient.post(url,body)
+    .subscribe({
+      next: data => {
+        if (data !== null && data['status'] == 'Success') {
+          // Update project.
+          this.projects[index].id = this.UpdateProject.value.id;
+          this.projects[index].title = this.UpdateProject.value.projectTitle;
+          // Get index of object with needed id.
+          const indexMember = this.projects[index].members.map(e => e.username).indexOf(this.UpdateProject.value.assignetTo);
+          this.projects[index].assignetTo = this.UpdateProject.value.members[indexMember];
+          this.projects[index].members = this.UpdateProject.value.members;
+          // Clear values.
+          this.UpdateProject.patchValue({id: ""});
+          this.UpdateProject.patchValue({projectTitle: ""});
+          this.UpdateProject.patchValue({assignetTo: ""});
+          this.UpdateProject.patchValue({members: []});
+          this.UpdateProject.patchValue({newMember: ""});
+        }
+      },
+      error: error => {
+        console.error('Error', error);
       }
     });
     this.modalReference.close('Save Changes');
