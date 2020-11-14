@@ -35,7 +35,7 @@ export class ProjectsComponent implements OnInit {
     private UpdateProjectForm: FormBuilder,
     private DeleteProjectForm: FormBuilder,
     private CreateProjectForm: FormBuilder
-) {}
+  ) {}
 
   ngOnInit(): void {
     this.user = JSON.parse(localStorage.getItem("user"));
@@ -57,16 +57,15 @@ export class ProjectsComponent implements OnInit {
     });
   }
 
-  getProjectsRequest() {
+  async getProjectsRequest() {
     // Set values to send.
     const url = GlobalConstants.apiURL+'project_get_all';
     const body = JSON.stringify({
       uid: this.user.id
     });
     // Request.
-    this.httpClient.post(url, body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null) {
           this.projects = new Array;
           // Set projects.
@@ -80,47 +79,44 @@ export class ProjectsComponent implements OnInit {
             this.projects.push(project);
           }
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
+    ).catch(error => console.log(error.message));
+  }
+
+  async createProjectRequest() {
+    // Set values to send.
+    const url = GlobalConstants.apiURL+'project_add';
+    const body = JSON.stringify({
+      title: this.CreateProject.value.projectTitle,
+      assignet_to: this.user.id,
+      members: [this.user.id],
+      uid: this.user.id
     });
+    // Request.
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
+        if (data !== null) {
+          if (this.isUndefined(this.projects)) {
+            this.projects = new Array;
+          }
+          // Set project.
+          let project = new Project(
+            data['id'],
+            data['title'],
+            data['assignet_to'],
+            data['members']
+          );
+          this.projects.push(project);
+          // Clear value.
+          this.CreateProject.patchValue({projectTitle: ""});
+        }
+      }
+    ).catch(error => console.log(error.message));
   }
 
   createProject() {
     if (this.CreateProject.value.projectTitle != "") {
-      // Set values to send.
-      const url = GlobalConstants.apiURL+'project_add';
-      const body = JSON.stringify({
-        title: this.CreateProject.value.projectTitle,
-        assignet_to: this.user.id,
-        members: [this.user.id],
-        uid: this.user.id
-      });
-      // Request.
-      this.httpClient.post(url,body)
-      .subscribe({
-        next: data => {
-          if (data !== null) {
-            if (this.isUndefined(this.projects)) {
-              this.projects = new Array;
-            }
-            // Set project.
-            let project = new Project(
-              data['id'],
-              data['title'],
-              data['assignet_to'],
-              data['members']
-            );
-            this.projects.push(project);
-            // Clear value.
-            this.CreateProject.patchValue({projectTitle: ""});
-          }
-        },
-        error: error => {
-          console.error('Error', error);
-        }
-      });
+      this.createProjectRequest();
     }
     this.modalReference.close('Save Changes');
   }
@@ -130,7 +126,7 @@ export class ProjectsComponent implements OnInit {
     this.modalReference = this.modalService.open(content);
   }
 
-  deleteProject() {
+  async deleteProjectRequest() {
     // Set values to send.
     const projectId = this.DeleteProject.value.id;
     const url = GlobalConstants.apiURL+'project_delete';
@@ -139,9 +135,8 @@ export class ProjectsComponent implements OnInit {
       uid: this.user.id
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null && data['status'] == 'Success') {
           // Delete project.
           const index = this.projects.map(e => e.id).indexOf(projectId);
@@ -152,12 +147,12 @@ export class ProjectsComponent implements OnInit {
           this.DeleteProject.patchValue({id: ""});
           this.DeleteProject.patchValue({projectTitle: ""});
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
+  }
 
+  deleteProject() {
+    this.deleteProjectRequest();
     this.modalReference.close('Save Changes');
   }
 
@@ -171,18 +166,7 @@ export class ProjectsComponent implements OnInit {
     this.modalReference = this.modalService.open(content);
   }
 
-  updateProject() {
-    // Get index of object with needed id.
-    const index = this.projects.map(e => e.id).indexOf(this.UpdateProject.value.id);
-    // Add new member to members.
-    if (this.UpdateProject.value.newMember != "") {
-      this.UpdateProject.value.members.push({username: this.UpdateProject.value.newMember});
-    }
-    // Members array shaping.
-    const members = [];
-    for (const member of this.UpdateProject.value.members) {
-      members.push(member.username);
-    }
+  async updateProjectRequest(index, members) {
     // Set values to send.
     const url = GlobalConstants.apiURL+'project_edit';
     const body = JSON.stringify({
@@ -193,9 +177,8 @@ export class ProjectsComponent implements OnInit {
       uid: this.user.id
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null && data['status'] == 'Success') {
           // Update project.
           this.projects[index].id = this.UpdateProject.value.id;
@@ -211,11 +194,24 @@ export class ProjectsComponent implements OnInit {
           this.UpdateProject.patchValue({members: []});
           this.UpdateProject.patchValue({newMember: ""});
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
+  }
+
+  updateProject() {
+    // Get index of object with needed id.
+    const index = this.projects.map(e => e.id).indexOf(this.UpdateProject.value.id);
+    // Add new member to members.
+    if (this.UpdateProject.value.newMember != "") {
+      this.UpdateProject.value.members.push({username: this.UpdateProject.value.newMember});
+    }
+    // Members array shaping.
+    const members = [];
+    for (const member of this.UpdateProject.value.members) {
+      members.push(member.username);
+    }
+    this.updateProjectRequest(index, members);
+
     this.modalReference.close('Save Changes');
   }
 

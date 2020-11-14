@@ -64,7 +64,7 @@ export class BugComponent implements OnInit {
     });
   }
 
-  getBugRequest() {
+  async getBugRequest() {
     if (this.isUndefined(this.activatedRoute.snapshot.url[0].path)
     && this.activatedRoute.snapshot.url[0].path !== 'bug'
     && this.isUndefined(this.activatedRoute.snapshot.params.id)) {
@@ -78,9 +78,8 @@ export class BugComponent implements OnInit {
       uid: this.user.id
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null
         && data['id'] !== null
         && data['title'] !== null
@@ -101,14 +100,11 @@ export class BugComponent implements OnInit {
           // Value for modal selection.
           this.assignetToArray = [this.assignetToDef, ...this.project.members];
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
   }
 
-  deleteBugF() {
+  async deleteBugRequest() {
     // Set values to send.
     const url = GlobalConstants.apiURL+'task_delete';
     const body = JSON.stringify({
@@ -116,17 +112,17 @@ export class BugComponent implements OnInit {
       uid: this.user.id
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null && data['status'] == 'Success') {
           this.router.navigate(['/project'+this.project.id]);
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
+  }
+
+  deleteBugF() {
+    this.deleteBugRequest();
     this.modalReference.close('Save Changes');
   }
 
@@ -138,7 +134,7 @@ export class BugComponent implements OnInit {
     this.modalReference = this.modalService.open(content);
   }
 
-  updateBugF() {
+  async updateBugRequest() {
     // Set values to send.
     const assignetToIndex = this.project.members.map(e => e.username).indexOf(this.updateBug.value.assignetTo);
     if (assignetToIndex == -1) {
@@ -157,9 +153,8 @@ export class BugComponent implements OnInit {
       uid: this.user.id
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null
         && data['id'] !== null
         && data['title'] !== null
@@ -181,11 +176,12 @@ export class BugComponent implements OnInit {
           this.updateBug.patchValue({assignetTo: ""});
           this.updateBug.patchValue({description: ""});
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
+  }
+
+  updateBugF() {
+    this.updateBugRequest();
     this.modalReference.close('Save Changes');
   }
 

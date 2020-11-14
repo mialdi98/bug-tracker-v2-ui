@@ -36,8 +36,7 @@ export class AppComponent implements OnInit {
     this.isLogin = localStorage.getItem('user') != null;
   }
 
-  login() {
-    // if (this.loginValidate() === true) {
+  async loginRequest() {
     // Set values to send.
     const url = GlobalConstants.apiURL+'auth_login';
     const body = JSON.stringify({
@@ -45,9 +44,8 @@ export class AppComponent implements OnInit {
       password: this.password
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null
         && data['id'] != null
         && data['username'] != null
@@ -60,11 +58,13 @@ export class AppComponent implements OnInit {
           this.username = "";
           this.password = "";
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
+  }
+
+  login() {
+    // if (this.loginValidate() === true) {
+    this.loginRequest();
     this.modalReference.close('Save click');
     // }
   }

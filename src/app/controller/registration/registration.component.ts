@@ -62,8 +62,7 @@ export class RegistrationComponent implements OnInit {
     return this.validation;
   }
 
-  userCreate() {
-    if (this.userValidate() === true) {
+  async userCreateRequest() {
     // Set values to send.
     const url = GlobalConstants.apiURL+'reg';
     const body = JSON.stringify({
@@ -73,9 +72,8 @@ export class RegistrationComponent implements OnInit {
       role: this.roleForm.value.roles
     });
     // Request.
-    this.httpClient.post(url,body)
-    .subscribe({
-      next: data => {
+    await this.httpClient.post(url,body).toPromise().then(
+      data => {
         if (data !== null && data['status'] == 'Success') {
           // Back to default.
           this.username = "";
@@ -83,11 +81,13 @@ export class RegistrationComponent implements OnInit {
           this.confirm_password = "";
           this.email = "";
         }
-      },
-      error: error => {
-        console.error('Error', error);
       }
-    });
+    ).catch(error => console.log(error.message));
+  }
+
+  userCreate() {
+    if (this.userValidate() === true) {
+      this.userCreateRequest();
     }
   }
 }
