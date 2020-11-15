@@ -17,7 +17,7 @@ const routes: Routes = [
   { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] },
   { path: 'project/:id', component: ProjectComponent, canActivate: [AuthGuard] },
   { path: 'bug/:id', component: BugComponent, canActivate: [AuthGuard] },
-  { path: '**', redirectTo: '/index' }
+  { path: '**', redirectTo: '/index', canActivate: [AuthGuard] }
 ];
 
 @NgModule({

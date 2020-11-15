@@ -4,8 +4,9 @@ import { NgbModal, ModalDismissReasons, NgbModalRef } from '@ng-bootstrap/ng-boo
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
-import { GlobalConstants } from './common/global-constants';
-import { User } from './entity/user/user';
+import { JWTTokenService } from './common/jwt-token.service';
+import { CookieStorageService } from './common/cookie-storage.service';
+import { GlobalConstants as global } from './common/global-constants';
 
 @Component({
   selector: 'app-root',
@@ -28,17 +29,23 @@ export class AppComponent implements OnInit {
 
   constructor(
     public httpClient: HttpClient,
+    private cookie: CookieStorageService,
+    private jwt: JWTTokenService,
     private router: Router,
     private modalService: NgbModal
   ) {}
 
   ngOnInit(): void {
-    this.isLogin = localStorage.getItem('user') != null;
+    this.isLoginF();
+  }
+
+  isLoginF() {
+    this.isLogin = this.jwt.isTokenAcceptable();
   }
 
   async loginRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'auth_login';
+    const url = global.apiURL+'auth_login';
     const body = JSON.stringify({
       username: this.username,
       password: this.password
@@ -47,19 +54,17 @@ export class AppComponent implements OnInit {
     await this.httpClient.post(url,body).toPromise().then(
       data => {
         if (data !== null
-        && data['id'] != null
-        && data['username'] != null
-        && data['role'] != null
+        && data['jwt'] != null
         ) {
-          const user = new User(data['id'], data['username'], data['role']);
-          localStorage.setItem('user', JSON.stringify(user));
-          this.isLogin = localStorage.getItem('user') != null;
-          // Clear values.
-          this.username = "";
-          this.password = "";
+          this.cookie.set('jwt', data['jwt']);
+          this.jwt.setToken(this.cookie.get('jwt'));
+          this.isLogin = this.jwt.isTokenAcceptable();
         }
       }
     ).catch(error => console.log(error.message));
+    // Clear values.
+    this.username = "";
+    this.password = "";
   }
 
   login() {
@@ -84,8 +89,8 @@ export class AppComponent implements OnInit {
   }
 
   logout() {
-    localStorage.clear();
     this.isLogin = false;
+    this.cookie.remove('jwt');
     this.router.navigate(['/index']);
   }
 

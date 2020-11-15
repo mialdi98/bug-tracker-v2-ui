@@ -3,7 +3,7 @@ import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
 import { HttpClient } from '@angular/common/http';
 
-import { GlobalConstants } from '../../common/global-constants';
+import { GlobalConstants as global } from '../../common/global-constants';
 
 @Component({
   selector: 'app-registration',
@@ -64,7 +64,7 @@ export class RegistrationComponent implements OnInit {
 
   async userCreateRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'reg';
+    const url = global.apiURL+'/reg';
     const body = JSON.stringify({
       username: this.username,
       password: this.password,

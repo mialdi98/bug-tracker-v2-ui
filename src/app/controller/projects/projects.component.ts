@@ -5,7 +5,8 @@ import { FormGroup, FormBuilder } from '@angular/forms';
 import { Title } from "@angular/platform-browser";
 import { HttpClient } from '@angular/common/http';
 
-import { GlobalConstants } from '../../common/global-constants';
+import { JWTTokenService } from './../../common/jwt-token.service';
+import { GlobalConstants as global } from '../../common/global-constants';
 import { User } from '../../entity/user/user';
 import { Project } from '../../entity/project/project';
 
@@ -31,6 +32,7 @@ export class ProjectsComponent implements OnInit {
   constructor(
     public httpClient: HttpClient,
     private titleService:Title,
+    private jwt: JWTTokenService,
     private modalService: NgbModal, 
     private UpdateProjectForm: FormBuilder,
     private DeleteProjectForm: FormBuilder,
@@ -38,7 +40,7 @@ export class ProjectsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.user = JSON.parse(localStorage.getItem("user"));
+    this.user = this.jwt.getUser();
     this.getProjectsRequest();
     this.titleService.setTitle("BT - projects list");
     this.UpdateProject = this.UpdateProjectForm.group({
@@ -59,9 +61,9 @@ export class ProjectsComponent implements OnInit {
 
   async getProjectsRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'project_get_all';
+    const url = global.apiURL+'project_get_all';
     const body = JSON.stringify({
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -85,12 +87,12 @@ export class ProjectsComponent implements OnInit {
 
   async createProjectRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'project_add';
+    const url = global.apiURL+'project_add';
     const body = JSON.stringify({
       title: this.CreateProject.value.projectTitle,
       assignet_to: this.user.id,
       members: [this.user.id],
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -129,10 +131,10 @@ export class ProjectsComponent implements OnInit {
   async deleteProjectRequest() {
     // Set values to send.
     const projectId = this.DeleteProject.value.id;
-    const url = GlobalConstants.apiURL+'project_delete';
+    const url = global.apiURL+'project_delete';
     const body = JSON.stringify({
       id: projectId,
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -168,13 +170,13 @@ export class ProjectsComponent implements OnInit {
 
   async updateProjectRequest(index, members) {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'project_edit';
+    const url = global.apiURL+'project_edit';
     const body = JSON.stringify({
       id: this.UpdateProject.value.id,
       title: this.UpdateProject.value.projectTitle,
       assignet_to:  this.UpdateProject.value.assignetTo,
       members: members,
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -207,8 +209,13 @@ export class ProjectsComponent implements OnInit {
     }
     // Members array shaping.
     const members = [];
-    for (const member of this.UpdateProject.value.members) {
-      members.push(member.username);
+    if (this.UpdateProject.value.members.length >= 2) {
+      for (const member of this.UpdateProject.value.members) {
+        members.push(member.username);
+      }
+    }
+    else {
+      members.push(this.UpdateProject.value.members);
     }
     this.updateProjectRequest(index, members);
 

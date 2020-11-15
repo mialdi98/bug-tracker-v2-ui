@@ -6,7 +6,8 @@ import { Title } from "@angular/platform-browser";
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 
-import { GlobalConstants } from '../../common/global-constants';
+import { JWTTokenService } from './../../common/jwt-token.service';
+import { GlobalConstants as global } from '../../common/global-constants';
 import { User } from '../../entity/user/user';
 import { Project } from '../../entity/project/project';
 import { Bug } from '../../entity/bug/bug';
@@ -40,6 +41,7 @@ export class ProjectComponent implements OnInit {
     public httpClient: HttpClient,
     private activatedRoute: ActivatedRoute,
     private titleService:Title,
+    private jwt: JWTTokenService,
     private modalService: NgbModal, 
     private updateBugForm: FormBuilder,
     private deleteBugForm: FormBuilder,
@@ -47,7 +49,7 @@ export class ProjectComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.user = JSON.parse(localStorage.getItem("user"));
+    this.user = this.jwt.getUser();
     //  Get project.
     if (this.isUndefined(this.activatedRoute.snapshot.url[0].path)
     && this.activatedRoute.snapshot.url[0].path !== 'project'
@@ -85,10 +87,10 @@ export class ProjectComponent implements OnInit {
 
   async getProjectRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'project_get';
+    const url = global.apiURL+'project_get';
     const body = JSON.stringify({
       id: this.projectId,
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -115,10 +117,10 @@ export class ProjectComponent implements OnInit {
 
   async getBugsRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'task_get_all';
+    const url = global.apiURL+'task_get_all';
     const body = JSON.stringify({
       id: this.projectId,
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -146,7 +148,7 @@ export class ProjectComponent implements OnInit {
     // Set values to send.
     const assignetToIndex = this.project.members.map(e => e.username).indexOf(this.createBug.value.assignetTo);
     const assignetTo = this.project.members[assignetToIndex];
-    const url = GlobalConstants.apiURL+'task_add';
+    const url = global.apiURL+'task_add';
     const body = JSON.stringify({
       id: this.projectId,
       title: this.createBug.value.title,
@@ -155,7 +157,7 @@ export class ProjectComponent implements OnInit {
       assignet_to: assignetTo.id,
       description: this.createBug.value.description,
       project: this.projectId,
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -209,10 +211,10 @@ export class ProjectComponent implements OnInit {
 
   async deleteBugRequest() {
     // Set values to send.
-    const url = GlobalConstants.apiURL+'task_delete';
+    const url = global.apiURL+'task_delete';
     const body = JSON.stringify({
       id: this.deleteBug.value.id,
-      uid: this.user.id
+      jwt: this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(
@@ -254,7 +256,7 @@ export class ProjectComponent implements OnInit {
       return;
     }
     const assignetTo = this.project.members[assignetToIndex];
-    const url = GlobalConstants.apiURL+'task_edit';
+    const url = global.apiURL+'task_edit';
     const body = JSON.stringify({
       id : this.updateBug.value.id,
       title : this.updateBug.value.title,
@@ -263,7 +265,7 @@ export class ProjectComponent implements OnInit {
       assignet_to : assignetTo.id,
       description : this.updateBug.value.description,
       project : this.projectId,
-      uid : this.user.id
+      jwt : this.jwt.getToken()
     });
     // Request.
     await this.httpClient.post(url,body).toPromise().then(

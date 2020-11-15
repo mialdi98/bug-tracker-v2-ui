@@ -13,6 +13,8 @@ import { RegistrationComponent } from './controller/registration/registration.co
 import { ProjectsComponent } from './controller/projects/projects.component';
 import { ProjectComponent } from './controller/project/project.component';
 import { BugComponent } from './controller/bug/bug.component';
+import { CookieStorageService } from './common/cookie-storage.service';
+import { JWTTokenService } from './common/jwt-token.service';
 
 @NgModule({
   imports: [
@@ -33,7 +35,10 @@ import { BugComponent } from './controller/bug/bug.component';
     IndexComponent,
     RegistrationComponent
   ],
-  providers: [],
+  providers: [
+    CookieStorageService,
+    JWTTokenService
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
